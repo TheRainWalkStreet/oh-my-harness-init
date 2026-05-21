@@ -27,13 +27,17 @@
 
 ## 安装
 
-> 仓库地址：`https://codeup.aliyun.com/658a544bb488fff322e7e6dd/llm-application/skills/oh-my-harness-init.git`
+> 仓库地址：`https://github.com/TheRainWalkStreet/oh-my-harness-init.git`
 
 ### 第一步：克隆 Skill 仓库到本地临时目录
 
 ```bash
-git clone https://codeup.aliyun.com/658a544bb488fff322e7e6dd/llm-application/skills/oh-my-harness-init.git \
+git clone https://github.com/TheRainWalkStreet/oh-my-harness-init.git \
   /tmp/oh-my-harness-init
+  
+cd oh-my-harness-init
+
+git checkout -f {vx.x.x}
 ```
 
 ### 第二步：将 Skill 复制到目标项目
