@@ -1,223 +1,210 @@
-# 日常开发工作流
+# 日常工作流
 
-> 本文档回答一个关键问题：**仓库初始化完成后，如何在日常开发中让 AI 工具持续遵循已建立的 harness 规范？**
+本文说明项目完成 harness 规范化后，团队和 AI Agent 如何持续使用并维护这些文档。
 
----
+## 会话入口
 
-## 核心原理：AGENTS.md 是会话的起点
+每次进入项目，先读：
 
-初始化完成后，仓库里已经有：
+1. `AGENTS.md`
+2. `ARCHITECTURE.md`
+3. 与任务相关的 `docs/` 文件
 
-```
-AGENTS.md                   ← AI 每次会话自动读取的导航地图
-docs/architecture/LAYERS.md ← 权威层级规则
-docs/golden-principles/     ← 编码规范（DO/DON'T）
-tests/architecture/         ← 边界测试（CI 自动运行）
-.eslintrc / pyproject.toml  ← Linter 本地实时执行
-```
+`AGENTS.md` 只负责导航。不要把所有规则都塞回 `AGENTS.md`。
 
-**这些文件构成了"常驻上下文"**。你不需要在每次对话中重复解释项目架构——AI 工具会自动读取 AGENTS.md，从中获得项目地图、层级规则和关键约束。
+## 常见任务路由
 
----
+| 任务 | 先读 |
+| --- | --- |
+| 理解系统结构 | `ARCHITECTURE.md` |
+| 本地运行、测试、构建 | `docs/ENGINEERING.md` |
+| 写代码或 review 代码 | `docs/standards/coding.md` |
+| 组织提交或 PR 描述 | `docs/standards/commits.md` |
+| 涉及认证、配置、数据、外部 API | `docs/SECURITY.md` |
+| 判断维护优先级 | `docs/QUALITY_SCORE.md` |
+| 做复杂多步任务 | `docs/exec-plans/` |
+| 查询设计决策 | `docs/design-docs/` |
 
-## 各平台如何加载上下文
+## 新功能开发
 
-### Cursor
+1. 先读 `AGENTS.md`，确认任务应进入哪个模块。
+2. 读 `ARCHITECTURE.md`，确认层级边界和依赖方向。
+3. 读 `docs/standards/coding.md`，确认语言、框架和项目工具规范。
+4. 如果任务跨多个模块或会持续多轮，先在 `docs/exec-plans/active/` 创建执行计划。
+5. 完成后更新相关文档，不让代码事实和文档漂移。
 
-Cursor 在 Agent 模式下会自动读取仓库根目录的 `AGENTS.md`（如果存在）。此外，`.cursor/rules/oh-my-harness-init/SKILL.md` 以 **Agent Requested** 模式存在——当 Cursor 判断任务与 harness 初始化相关时，会主动加载它。
+## 刷新 harness 知识库
 
-**推荐的日常使用方式：**
+开发一段时间后，不要重新初始化。使用 Refresh：
 
-```
-# 直接描述任务，AI 会基于 AGENTS.md 中的上下文执行
-"给 UserService 增加一个获取用户列表的方法"
-
-# 需要参考具体文档时，显式引用
-"检查这个 PR 改动是否符合 @docs/architecture/LAYERS.md 的层级规则"
-
-# 遇到架构相关问题时
-"我想在 components 层中调用 db 层，可以吗？参考 @docs/architecture/LAYERS.md"
-```
-
-### Claude Code
-
-Claude Code 在每次会话启动时**自动将 `AGENTS.md` 注入上下文**。技能文件（`.claude/skills/oh-my-harness-init/SKILL.md`）由触发词激活。
-
-**推荐的日常使用方式：**
-
-```bash
-# 普通开发任务 —— AI 自动遵循 AGENTS.md 中的规范
-claude "在 services 层新增一个 PaymentService"
-
-# 需要进行 harness 相关操作时（触发 Skill）
-claude "给现有仓库补充 CI 配置（harness-init 阶段 5）"
-
-# 明确要求审查层级合规性
-claude "审查最近的改动是否违反了架构层级规则"
+```text
+使用 harness-normalize 刷新当前 harness 知识库
 ```
 
-### OpenAI Codex
+Refresh 会重新扫描项目事实，并增量更新：
 
-Codex 同样自动读取 `AGENTS.md`，技能在 `.agents/skills/` 目录下按需加载。
+- `AGENTS.md`
+- `ARCHITECTURE.md`
+- `docs/ENGINEERING.md`
+- `docs/standards/coding.md`
+- `docs/standards/commits.md`
+- `docs/SECURITY.md`
+- Standard 项目的 `docs/QUALITY_SCORE.md`、`docs/design-docs/`、`docs/exec-plans/`
 
-```bash
-# 普通任务
-codex "重构 UserRepository，保持在 repository 层"
+刷新不是覆盖。仍然准确的内容应保留，过期内容用仓库事实修正，不确定内容标记为 `待确认`。
 
-# 触发 harness skill
-codex "harness-init 3-4"  # 仅执行边界测试和 Lint 配置
+## Lite 升级 Standard
 
-# 验证架构合规
-codex "运行架构边界测试并报告结果"
+Lite 项目开始出现业务代码后，定期检查是否需要升级：
+
+```text
+使用 harness-normalize 检查是否需要从 Lite 升级到 Standard
 ```
 
----
+建议升级的信号：
 
-## 日常开发循环
+- 出现清晰业务模块或领域概念。
+- 有稳定测试、lint、build 流程。
+- 出现多人协作。
+- 出现技术债或复杂改造需求。
+- 有架构决策需要记录。
+- 出现生产部署、外部 API、数据库或权限边界。
 
-每次功能开发建议遵循以下循环：
+升级会保留已有 Lite 文档，并补充：
 
-```
-1. 定义任务意图（人类）
-      ↓
-2. AI 自动读取 AGENTS.md，获取项目地图和约束
-      ↓
-3. AI 参考 docs/architecture/LAYERS.md 设计实现方案
-      ↓
-4. AI 编写代码，遵循 docs/golden-principles/ 中的规范
-      ↓
-5. 本地验证（AI 或人类触发）：
-   - Lint：import 边界检查（实时报错）
-   - 边界测试：npm test / pytest / go test（提交前）
-      ↓
-6. 开 PR → CI 全量检查（lint + typecheck + test + build）
-      ↓
-7. 合并 → 继续下一个任务
-```
-
-**每周一次：** GC 扫描自动运行，发现文档漂移和架构违规，以 Issue 形式报告。
-
----
-
-## 有效的提示词模式
-
-### 好的提示词
-
-```
-✅ "给 OrderService 增加取消订单的方法，注意它只能调用 repository 层"
-   → 简洁，隐含层级约束提醒
-
-✅ "这段代码的错误处理是否符合我们的规范？"
-   → AI 会自动查阅 docs/golden-principles/ERROR_HANDLING.md
-
-✅ "审查这个文件，找出所有违反 LAYERS.md 的 import"
-   → 明确引导 AI 使用已有文档
-
-✅ "用我们项目的测试模式为这个函数写单元测试"
-   → AI 会参考 docs/golden-principles/TESTING.md
+```text
+docs/
+├── QUALITY_SCORE.md
+├── design-docs/
+│   ├── index.md
+│   └── core-beliefs.md
+└── exec-plans/
+    ├── index.md
+    ├── active/
+    │   └── README.md
+    ├── completed/
+    │   └── README.md
+    └── tech-debt.md
 ```
 
-### 需要避免的提示词
+如果暂时不升级，也可以只刷新 Lite 文件。
 
-```
-❌ "写一个 UserService，从数据库读取用户，然后调用前端 API 渲染"
-   → 混淆了层级职责，容易引发架构违规
-   → 更好的方式：拆分成"在 services 层写 UserService"和"在 pages 层调用它"
+## Bug 修复
 
-❌ "帮我快速实现这个功能，不用管代码质量"
-   → 明确绕过了黄金原则，日后会产生技术债
-   → 更好的方式：任何实现都应遵循现有规范，速度不是跳过规范的理由
+1. 从复现路径定位相关模块。
+2. 读 `ARCHITECTURE.md` 中该模块的职责。
+3. 检查修复是否违反 `docs/standards/coding.md`。
+4. 如果发现文档过期，顺手更新。
+5. 最终说明中写清验证方式；没有运行验证时如实说明。
 
-❌ 在每次提示词里手动粘贴架构规则
-   → 这正是 AGENTS.md 存在的意义，不要重复它
-   → AI 已经通过 AGENTS.md 知道这些规则了
-```
+## 复杂任务与执行计划
 
----
+复杂任务使用：
 
-## 当 AI 违反 harness 规范时
-
-即使有了 AGENTS.md 和 Lint 规则，AI 偶尔仍会产生不符合规范的代码。按以下方式处理：
-
-### 情况 1：边界测试或 Lint 报错
-
-```
-VIOLATION: src/components/UserCard.tsx:5 imports src/services/userService
-— components 不能导入 services。参见 docs/architecture/LAYERS.md
+```text
+docs/exec-plans/active/YYYY-MM-DD-任务简述.md
 ```
 
-**处理方式：**
-1. 将报错信息直接粘贴给 AI，让它自己修复
-2. AI 的报错信息已包含修复指引，通常能自行解决
-3. 如果反复出现，将这个违规加入 KNOWN_VIOLATIONS 作为临时豁免，记录移除时间线
+计划文件应持续记录：
 
-### 情况 2：黄金原则被忽视（代码可以运行但不符合规范）
+- 背景。
+- 目标和非目标。
+- 步骤。
+- 当前进度。
+- 决策记录。
+- 风险和待确认事项。
+- 验证计划。
 
-```bash
-# 明确告知 AI 哪条规范被违反
-"这里的错误处理方式不符合我们的 ERROR_HANDLING.md，
-请重写，使用 Result 类型而不是直接 throw"
+任务完成后移动到：
+
+```text
+docs/exec-plans/completed/YYYY-MM-DD-任务简述.md
 ```
 
-### 情况 3：同一类问题反复出现
+归档前补齐：
 
-**触发升级阶梯**（参见 `references/golden-principles-guide.md`）：
+- 最终结果。
+- 实际变更。
+- 验证情况。
+- 遗留问题。
+- 后续建议。
 
-```
-第 1 次 → 在 docs/golden-principles/ 中补充或澄清规则
-第 2 次 → 添加对应的边界测试 / 单元测试
-第 3 次 → 添加 Lint 规则，让工具机械阻断
-持续发生 → 编入 GC 脚本，定期自动扫描修复
-```
+长期技术债进入 `docs/exec-plans/tech-debt.md`，不要混进单次执行计划。
 
-> **核心思路：** AI 的错误是环境信号，不是 AI 的问题。每次错误都是一个改进 harness 的机会。
+## 设计决策
 
----
+当任务改变架构、数据模型、接口契约、安全边界或长期技术方向时，更新：
 
-## 复杂任务：使用执行计划
+- `docs/design-docs/index.md`
+- `docs/design-docs/core-beliefs.md`
+- 必要时新增设计文档
 
-对于多小时的复杂功能（如重大重构、新功能模块），使用执行计划（ExecPlan）来保持上下文连续：
+核心理念必须能指导 review。不要写泛泛口号。
 
-```bash
-# 让 AI 先写执行计划，再开始实现
-"在 docs/exec-plans/active/ 下为'用户认证重构'创建一个执行计划，
-命名为 2026-04-22-auth-refactor.md，
-然后按计划逐步实现"
-```
+## 开发规范维护
 
-执行计划会记录：进度、意外发现、决策日志——即使会话中断，下次也能从计划文件恢复上下文。
+`docs/standards/coding.md` 不是外部规范搬运，而是项目自己的规范。
 
----
+更新规则：
 
-## 每周维护清单
+- 项目新增语言、框架或工具时更新。
+- lint/format/typecheck 工具变更时更新。
+- 同类代码问题反复出现时补充人工 review 标准。
+- Java 项目可参考阿里巴巴 Java 开发手册；其它语言按自身生态适配。
 
-harness 不是"设置一次就永久有效"的，需要定期维护：
+## 提交规范维护
 
-```markdown
-每周一次（通常由 GC Action 自动触发，也可手动运行）：
+`docs/standards/commits.md` 默认采用 Conventional Commits，但项目已有规范优先。
 
-- [ ] 运行 GC 扫描：`npm run gc` / `make gc`
-      → 检查文档漂移、架构违规、知识新鲜度
-- [ ] 查看 GC 报告生成的 Issue（标签：garbage-collection）
-- [ ] 处理报告中的问题（按升级阶梯决定处理方式）
+维护规则：
 
-每月一次：
-- [ ] 检查 QUALITY_SCORE.md 是否需要更新
-- [ ] 回顾 KNOWN_VIOLATIONS —— 是否有可以修复并移除的条目
-- [ ] 检查 docs/exec-plans/active/ —— 是否有已完成但未归档的计划
-- [ ] 回顾 golden-principles/ —— 是否有需要升级为 Lint 规则的文档规则
-```
+- 如果引入 commitlint、changeset、语义化发布，更新规范。
+- 如果团队修改分支命名或 PR 模板，更新规范。
+- Agent 生成提交说明必须基于实际 diff，不编造测试或发布信息。
 
----
+## 安全文档维护
 
-## 快速参考
+`docs/SECURITY.md` 只记录安全边界和流程，不记录敏感事实。
 
-| 我想做什么 | 怎么告诉 AI |
-|------------|-------------|
-| 新增功能 | 直接描述功能，AI 自动遵循 AGENTS.md 中的规范 |
-| 审查架构合规性 | "检查最近改动是否违反 `@docs/architecture/LAYERS.md`" |
-| 修复层级违规 | 直接粘贴 VIOLATION 报错信息，让 AI 自行修复 |
-| 补充规范文档 | "在 golden-principles/ 下为 [主题] 写一个规范文档" |
-| 复杂多步任务 | "先在 exec-plans/active/ 创建执行计划，再开始实现" |
-| 运行全量检查 | "运行 lint、边界测试和 GC 扫描，报告结果" |
-| 单独补充某个阶段 | "执行 oh-my-harness-init [N]" 或 "执行 harness-init 阶段 [N]" |
+禁止写入：
+
+- 真实密钥、token、账号。
+- 内部 IP、内网域名、生产地址。
+- 真实用户数据。
+- 未公开漏洞细节。
+
+## 质量评分维护
+
+`docs/QUALITY_SCORE.md` 服务于维护优先级，不是仪式文档。
+
+建议在以下时机更新：
+
+- 重大重构后。
+- 测试覆盖或质量门禁明显变化后。
+- 安全、可靠性或文档状态明显变化后。
+- 进入下一个重要迭代前。
+
+Lite 项目默认没有该文件；当项目事实足够时，可以升级到 Standard。
+
+## 前后端一体项目
+
+前后端一体项目默认不拆 `FRONTEND.md` / `BACKEND.md`。
+
+日常维护时优先更新：
+
+- `ARCHITECTURE.md`：前后端边界、API 契约、静态资源托管、构建产物流向。
+- `docs/ENGINEERING.md`：前端命令、后端命令、统一入口、本地联调。
+- `docs/standards/coding.md`：前端规范、后端规范、跨边界调用规则。
+- `docs/SECURITY.md`：浏览器侧安全、服务端安全、CORS/CSRF、认证态、环境变量暴露。
+
+只有复杂度达到独立治理程度时，才补充 `docs/FRONTEND.md` 或 `docs/BACKEND.md`。
+
+## 处理 `待确认`
+
+`待确认` 是有价值的信号，不是失败。
+
+处理方式：
+
+- 能从代码或配置确认的，确认后更新文档。
+- 需要产品、运维或团队知识的，保留并在任务说明中提醒。
+- 不要为了让文档看起来完整而编造答案。

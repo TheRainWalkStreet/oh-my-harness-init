@@ -1,199 +1,205 @@
-# Oh My Harness Init
+# Harness Normalize
 
-> **harness-init 的中文版 Skill**，基于 OpenAI 的 harness 工程方法论，为 Cursor、Claude Code、Codex 等 AI 编程工具提供仓库初始化脚手架能力。
+`harness-normalize` 是一个中文 Codex/Cursor/Claude Code skill，用于把**已有项目**规范化为适合 AI Agent 长期协作的 harness 知识库。
 
-[![版本](https://img.shields.io/badge/版本-v1.2.0-green)]()
-[![基于](https://img.shields.io/badge/基于-harness--init%401.1.0-blue)](https://github.com/Gizele1/harness-init)
-[![语言](https://img.shields.io/badge/语言-中文-red)]()
+它不负责创建新项目、不生成业务代码、不改造 CI/Lint/Pre-commit。它只做一件事：基于项目真实代码和配置，生成或整理一套精炼、可维护、可提交到 Git 的项目知识结构。
 
----
+## 适用场景
 
-## 这是什么
+使用它处理：
 
-`oh-my-harness-init` 是 [harness-init](https://github.com/Gizele1/harness-init) 的中文优化版本，通过 8 个阶段将任意代码仓库改造为 **Agent 就绪（Agent-Ready）** 的工程环境：
+- 已经搭好开发框架、能运行但还没写业务代码的项目。
+- 正在开发的业务项目。
+- 已经开发完成、需要补齐 Agent 协作上下文的项目。
+- 前后端在同一工作空间中的一体化项目。
+- 需要中文 `AGENTS.md`、架构说明、工程规范、开发规范、提交规范、安全边界和执行计划体系的项目。
+- 已有 Lite harness 知识库、需要刷新或升级到 Standard 的项目。
 
-| 阶段   | 做什么                                              |
-|--------|-----------------------------------------------------|
-| 阶段 0 | 识别 Greenfield/Brownfield，检测技术栈，映射架构层级 |
-| 阶段 1 | 生成 AGENTS.md 导航地图（约 100 行索引）             |
-| 阶段 2 | 建立 docs/ 知识体系（架构文档、黄金原则、安全文档）  |
-| 阶段 3 | 创建架构边界测试（棘轮机制，只减不增）               |
-| 阶段 4 | 配置 Linter import 限制规则（报错含修复指引）        |
-| 阶段 5 | 生成 CI 流水线（lint + typecheck + test + build）    |
-| 阶段 6 | 生成垃圾回收脚本和每周定时扫描（熵管理）             |
-| 阶段 7 | 配置 Pre-commit hooks（可选，本地约束）              |
+不使用它处理：
 
----
+- 空仓库或尚未确定技术栈的项目。
+- 功能开发、Bug 修复、代码重构。
+- CI、lint、架构边界测试、垃圾回收脚本、pre-commit hooks 生成。
+- 大而全的文档站点生成。
+
+## 输出结构
+
+skill 会根据项目事实选择 Lite、Standard 或 Extended。
+
+### Lite
+
+适合框架刚搭好、业务代码很少的小型项目。
+
+```text
+AGENTS.md
+ARCHITECTURE.md
+docs/
+├── ENGINEERING.md
+├── SECURITY.md
+└── standards/
+    ├── coding.md
+    └── commits.md
+```
+
+### Standard
+
+适合大多数企业级已有项目。
+
+```text
+AGENTS.md
+ARCHITECTURE.md
+docs/
+├── ENGINEERING.md
+├── SECURITY.md
+├── QUALITY_SCORE.md
+├── standards/
+│   ├── coding.md
+│   └── commits.md
+├── design-docs/
+│   ├── index.md
+│   └── core-beliefs.md
+└── exec-plans/
+    ├── index.md
+    ├── active/
+    │   └── README.md
+    ├── completed/
+    │   └── README.md
+    └── tech-debt.md
+```
+
+### Extended
+
+只在项目事实触发时扩展，例如：
+
+- `docs/generated/api-spec.md`
+- `docs/generated/db-schema.md`
+- `docs/references/{library-or-platform}-llms.txt`
+- `docs/product-specs/index.md`
+- `docs/RELIABILITY.md`
+- `docs/FRONTEND.md`
+- `docs/BACKEND.md`
+- `docs/MOBILE.md`
+- `docs/OPERATIONS.md`
+
+没有事实触发就不创建空壳文档。
+
+## 核心规则
+
+- 先扫描项目事实，再生成文档。
+- 所有输出默认使用中文。
+- 所有生成文件默认提交到 Git 长期维护。
+- 不生成 `.gitkeep`。
+- 不确定内容写 `待确认`。
+- 项目已有工具和规范优先。
+- `AGENTS.md` 是入口地图，不是百科全书。
+- 开发规范使用“通用工程规范内核 + 语言/框架适配层”，Java 项目可参考阿里巴巴 Java 开发手册，但不把它作为所有语言的默认规范。
+- 提交规范默认使用 Conventional Commits；项目已有规范优先。
 
 ## 安装
 
-> 仓库地址：`https://github.com/TheRainWalkStreet/oh-my-harness-init.git`
-
-### 第一步：克隆 Skill 仓库到本地临时目录
+先克隆 skill 仓库：
 
 ```bash
-git clone https://github.com/TheRainWalkStreet/oh-my-harness-init.git \
-  /tmp/oh-my-harness-init
-  
-cd oh-my-harness-init
-
-git checkout -f {vx.x.x}
+git clone https://github.com/TheRainWalkStreet/harness-normalize.git /tmp/harness-normalize
+cd /tmp/harness-normalize
+git checkout v1.3.0
 ```
 
-### 第二步：将 Skill 复制到目标项目
-
-根据你使用的 AI 工具，选择对应的安装方式：
-
----
-
-#### Cursor
-
-Cursor 使用 `.cursor/rules/` 作为 AI 规则目录（Agent Requested 模式），将 Skill 复制到**目标项目**的该目录下：
+### Cursor
 
 ```bash
-# 在你的目标项目根目录执行
-
-mkdir -p .cursor/rules/oh-my-harness-init/references
-
-cp /tmp/oh-my-harness-init/SKILL.md \
-   .cursor/rules/oh-my-harness-init/
-
-cp /tmp/oh-my-harness-init/references/*.md \
-   .cursor/rules/oh-my-harness-init/references/
+mkdir -p .cursor/rules/harness-normalize/references
+cp /tmp/harness-normalize/SKILL.md .cursor/rules/harness-normalize/
+cp /tmp/harness-normalize/references/*.md .cursor/rules/harness-normalize/references/
 ```
 
-> **为什么是 `.cursor/rules/` 而不是 `.cursor/skills/`？**
-> `.cursor/skills/` 不是 Cursor 的官方目录（那是 Claude Code 的概念），Cursor 不会识别它。
-> `.cursor/rules/` 是 Cursor Rules 的官方位置，Cursor Agent 会在判断任务相关时自动读取其中的文件。
-
----
-
-#### Claude Code
+### Claude Code
 
 ```bash
-# 在你的目标项目根目录执行
-
-mkdir -p .claude/skills/oh-my-harness-init/references
-
-cp /tmp/oh-my-harness-init/SKILL.md \
-   .claude/skills/oh-my-harness-init/
-
-cp /tmp/oh-my-harness-init/references/*.md \
-   .claude/skills/oh-my-harness-init/references/
+mkdir -p .claude/skills/harness-normalize/references
+cp /tmp/harness-normalize/SKILL.md .claude/skills/harness-normalize/
+cp /tmp/harness-normalize/references/*.md .claude/skills/harness-normalize/references/
 ```
 
----
-
-#### OpenAI Codex
+### OpenAI Codex
 
 ```bash
-# 在你的目标项目根目录执行
-
-mkdir -p .agents/skills/oh-my-harness-init/references
-
-cp /tmp/oh-my-harness-init/SKILL.md \
-   .agents/skills/oh-my-harness-init/
-
-cp /tmp/oh-my-harness-init/references/*.md \
-   .agents/skills/oh-my-harness-init/references/
-```
-
----
-
-#### 手动（任意 AI 工具）
-
-直接阅读 `/tmp/oh-my-harness-init/SKILL.md`，按照其中的 8 个阶段在任意 AI 编程工具中手动执行即可。
-
----
-
-### 更新 Skill 到最新版本
-
-```bash
-# 拉取最新版本
-cd /tmp/oh-my-harness-init && git pull
-
-# 重新覆盖到目标项目（以 Cursor 为例，其他平台同理）
-cp /tmp/oh-my-harness-init/SKILL.md \
-   /path/to/your-project/.cursor/rules/oh-my-harness-init/
-
-cp /tmp/oh-my-harness-init/references/*.md \
-   /path/to/your-project/.cursor/rules/oh-my-harness-init/references/
+mkdir -p .agents/skills/harness-normalize/references
+cp /tmp/harness-normalize/SKILL.md .agents/skills/harness-normalize/
+cp /tmp/harness-normalize/references/*.md .agents/skills/harness-normalize/references/
 ```
 
 ## 使用方式
 
-安装后，在 AI 工具对话中直接说：
+在已有项目中对 AI 工具说：
 
-```
-oh-my-harness-init          # 交互式 —— 询问要设置什么
-oh-my-harness-init full     # 完整设置，全部 8 个阶段
-oh-my-harness-init 2        # 仅执行阶段 2
-oh-my-harness-init 3-4      # 执行阶段 3 到 4
-```
-
-或者用自然语言：
-
-- "使这个仓库 agent 就绪"
-- "初始化项目规范"
-- "给这个 Spring Boot 项目搭建工程脚手架"
-- "添加架构边界约束"
-
----
-
-## 初始化完成后：如何日常使用
-
-> **重要：** 仓库初始化只是第一步。真正的价值在于初始化后每天的开发都在 harness 范式下进行。
-
-安装并运行 oh-my-harness-init 后，仓库里的 `AGENTS.md`、`docs/`、Lint 规则和边界测试共同构成了"常驻上下文"——AI 工具在每次会话启动时自动读取，你不需要在每次对话中重复解释项目架构。
-
-详细的日常工作流、有效提示词模式、处理 AI 违规的方法，以及每周维护清单，请阅读：
-
-**→ [`WORKFLOW.md`](./WORKFLOW.md)**
-
----
-
-## 文件结构
-
-```
-oh-my-harness-init/
-├── SKILL.md                              # 主 Skill 文件（AI 读取执行）
-├── README.md                             # 本文件（从这里开始）
-├── WORKFLOW.md                           # 初始化后的日常开发工作流指南
-├── CHANGELOG.md                          # 版本变更记录
-└── references/                           # 按需加载的参考模板
-    ├── agents-md-template.md             # AGENTS.md 模板（含约束示例）
-    ├── layer-templates.md                # 架构层级模板（6 种技术栈）
-    ├── context-strategy.md               # 静态/动态上下文策略
-    ├── golden-principles-guide.md        # 黄金原则编写指南（含升级阶梯）
-    ├── security-template.md              # SECURITY.md 模板
-    ├── exec-plan-template.md             # 执行计划标准
-    ├── boundary-test-template.md         # 边界测试骨架（TS/Python/Go）
-    ├── stack-routing.md                  # 技术栈工具决策表（阶段 3-7）
-    ├── ci-templates.md                   # CI 模板（GitHub/GitLab/Makefile）
-    ├── gc-patterns.md                    # 垃圾回收模式
-    ├── tool-routing.md                   # 各平台工具路由映射
-    └── glossary.md                       # 术语对照表
+```text
+使用 harness-normalize 规范化这个已有项目
+为这个项目生成 harness 知识库
+给这个项目补齐 AGENTS.md、架构说明和开发规范
+让这个前后端一体项目适合 Agent 长期维护
 ```
 
----
+skill 会先扫描项目，再说明当前 harness 状态、推荐运行模式、结构档位和将创建/更新的文件。
 
-## 与原版的区别
+## 刷新与升级
 
-| 维度               | harness-init（原版）     | oh-my-harness-init v1.2.0（本版）            |
-|--------------------|--------------------------|----------------------------------------------|
-| 语言               | 英文                     | 中文                                         |
-| 发现阶段           | 统一策略                 | Greenfield / Brownfield 明确分叉策略          |
-| 工程哲学           | 6 条原则                 | 7 条（新增高吞吐 Merge 哲学）                 |
-| 层级模板           | 4 种技术栈               | 6 种（新增 Java/Spring Boot）                 |
-| 边界测试骨架       | TS + Python              | TS + Python + Go                              |
-| 黄金原则指南       | 基础模板                 | 含执行方式章节 + 升级阶梯 + 后端候选文件      |
-| 工具路由           | 5 种意图                 | 6 种意图（新增 Review/审查）                  |
-| 错误示例           | 2 个 Bad 场景            | 4 个 Bad 场景                                 |
-| 术语管理           | 无                       | 专用术语对照表（33 个术语）                   |
-| 版本记录           | 无                       | CHANGELOG.md                                  |
+`harness-normalize` 支持三种运行模式：
 
----
+- Initialize：项目还没有 harness 知识库时，首次生成。
+- Refresh：项目已有 Lite 或 Standard 知识库时，增量刷新。
+- Upgrade：Lite 项目已经进入真实开发阶段时，建议升级到 Standard。
 
-## 许可
+Refresh 不是全量重跑：
 
-MIT — 基于 [harness-init](https://github.com/Gizele1/harness-init)（MIT）构建。
+- 保留仍然准确的内容。
+- 用仓库事实修正过期内容。
+- 无法确认的信息标记为 `待确认`。
+- 不静默覆盖用户已有知识。
+
+Lite 项目出现以下信号时，建议升级 Standard：
+
+- 已出现清晰业务模块或领域概念。
+- 已有稳定测试、lint、build 流程。
+- 出现多人协作迹象。
+- 出现技术债或复杂改造需求。
+- 有架构决策需要记录。
+- 出现生产部署、外部 API、数据库或权限边界。
+
+可以这样触发：
+
+```text
+使用 harness-normalize 刷新当前 harness 知识库
+使用 harness-normalize 检查是否需要从 Lite 升级到 Standard
+这个 Lite 项目已经开始写业务了，升级 harness 知识库
+```
+
+## Skill 文件结构
+
+```text
+harness-normalize/
+├── SKILL.md
+├── README.md
+├── WORKFLOW.md
+└── references/
+    ├── harness-principles.md
+    ├── discovery-checklist.md
+    ├── structure-profiles.md
+    ├── refresh-strategy.md
+    ├── layer-mapping-guide.md
+    ├── agents-md-template.md
+    ├── architecture-template.md
+    ├── engineering-template.md
+    ├── coding-standards-template.md
+    ├── coding-standards-profiles.md
+    ├── commit-standards-template.md
+    ├── security-template.md
+    ├── quality-score-template.md
+    ├── design-docs-template.md
+    ├── exec-plans-template.md
+    └── glossary.md
+```
+
+## 日常维护
+
+初始化后的日常使用方式见 [`WORKFLOW.md`](./WORKFLOW.md)。
